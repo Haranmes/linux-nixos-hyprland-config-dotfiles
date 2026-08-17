@@ -1,13 +1,9 @@
 [user]
-	email = artem.shevchenko@plummygames.com
-	name = artemplummy
+	name = hrns
 	signingkey = ~/.ssh/work.pub
 
 [github]
-	user = "artemplummy"
-
-[bitbucket]
-	user = "artemplummy"
+	user = "hrns"
 
 [core]
 	sshCommand = "ssh -i ~/.ssh/work"
