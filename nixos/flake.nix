@@ -62,6 +62,13 @@
       { networking.hostName = lib.mkForce "isitreal-vm"; }
       ./vm-autologin.nix
     ];
+
+    proxmoxExtras = [
+      ./opengl-vm.nix
+      ./proxmox.nix
+      { networking.hostName = lib.mkForce "gsh-work-vm"; }
+      ./vm-autologin.nix
+    ];
   in
   {
     nixosConfigurations.isitreal-laptop = nixpkgs.lib.nixosSystem {
@@ -92,6 +99,21 @@
       format = "vmware";
       modules = (lib.filter (m: m != ./hardware-configuration.nix && m != ./bootloader.nix) commonModules) ++ vmwareExtras ++ [
         { virtualisation.diskSize = 40 * 1024; }
+      ];
+    };
+
+    nixosConfigurations.proxmox-vm = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs; };
+      modules = commonModules ++ proxmoxExtras;
+    };
+
+    packages.x86_64-linux.proxmox-image = inputs.nixos-generators.nixosGenerate {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs; };
+      format = "qcow";
+      modules = (lib.filter (m: m != ./hardware-configuration.nix && m != ./bootloader.nix) commonModules) ++ proxmoxExtras ++ [
+        { virtualisation.diskSize = 100 * 1024; }
       ];
     };
   };
