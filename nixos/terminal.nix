@@ -25,7 +25,6 @@
     noti
     topgrade
     ripgrep
-    nix-ai-tools.ck
     rewrk
     wrk2
     procs
@@ -72,7 +71,7 @@
     yazi
     chafa
     jrnl
-    python314Packages.faker
+    python312Packages.faker
 
     cmatrix
     pipes-rs

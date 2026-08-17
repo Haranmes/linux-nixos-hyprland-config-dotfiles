@@ -4,16 +4,13 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.xnm = {
     isNormalUser = true;
-    description = "xnm";
+    description = "rsoliman";
     extraGroups = [ "networkmanager" "input" "wheel" "video" "audio" "tss" ];
     shell = pkgs.fish;
     packages = with pkgs; [
-      spotify
-      pear-desktop
-      discord
-      telegram-desktop
+      git
       vscodium
-      brave
+      firefox
     ];
   };
 

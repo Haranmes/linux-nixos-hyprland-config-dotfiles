@@ -18,8 +18,9 @@
 - [Showcase](#-showcase)
 - [Components](#-components)
 - [Features](#-features)
-- [Tailscale](#-tailscale)
 - [Installation](#-installation)
+- [Running under VMware Workstation Pro](#️-running-under-vmware-workstation-pro)
+- [SSH keys on the VM](#-ssh-keys-on-the-vm)
 - [Keybindings](#️-keybindings)
 - [Useful aliases in Fish Shell](#-useful-aliases-in-fish-shell)
 - [AI Tools and Services](#-ai-tools-and-services)
@@ -47,9 +48,10 @@ This approach ensures that you stay on the forefront of technology, receiving th
 
 > [!IMPORTANT]
 > Please note that the system utilizes **Podman** instead of **Docker** for containerization due to various reasons, primarily related to security (rootless and daemonless containers), easier migration to Kubernetes, availability of pods, compatibility with systemd, and better security for `distrobox`. If you prefer to use **Docker** instead of **Podman**, you can make the switch by commenting out the **Podman** section in the `nixos/virtualisation.nix` file and uncommenting the **Docker** section. More details on **Docker** configuration in NixOS can be found [here](https://nixos.wiki/wiki/Docker).
+> A single-node **k3s** cluster is also enabled (`nixos/virtualisation.nix`) for local Kubernetes development — `kubectl`, `helm`, `k9s`, and `kubectx` are installed alongside it. Use it when you need a real cluster; keep using Podman/`docker-compose` for quick one-off containers.
 
 > [!NOTE]
-> The system enables AppArmor and additional hardening through kernel LSMs, along with security services such as Fail2Ban and USBGuard. Firejail is also preinstalled for sandboxing desktop applications.
+> The system enables AppArmor and additional hardening through kernel LSMs, along with security services such as Fail2Ban.
 
 You have the flexibility to customize these configurations according to your needs by modifying the respective configuration files.
 
@@ -99,8 +101,7 @@ You have the flexibility to customize these configurations according to your nee
 | Wallpaper             | Hyprpaper                   |
 | Graphical Boot        | Plymouth + Catppuccin-plymouth |
 | Display Manager       | Greetd + Tuigreet           |
-| Containerization      | Podman                      |
-| Mesh VPN              | Tailscale                   |
+| Containerization      | Podman + k3s (single-node Kubernetes) |
 
 And many other useful utilities. The full list can be found in the system configuration files at `nixos` directory.
 
@@ -114,28 +115,11 @@ And many other useful utilities. The full list can be found in the system config
 
 - 🎨 **Customizable**: Leveraging the power of Linux and Hyprland, this configuration offers extensive customization options, allowing you to tailor your setup to your preferences.
 
-## 🔗 Tailscale
-
-Tailscale is enabled through `nixos/vpn.nix`, with the `tailscale` CLI installed. Routing features are disabled, and the configured Tailscale UDP port is allowed through the firewall.
-
-After rebuilding the system, authenticate the machine and verify its connection:
-
-```fish
-sudo tailscale up
-tailscale status
-```
-
 ## 🚀 Installation
 
 1. Download and Install NixOS from the [official site](https://nixos.org/download).
 2. Temporarily install ripgrep and fish using the command: `nix-shell -p ripgrep fish --run fish`. You can also use classic bash and grep for the next step without installing fish and ripgrep.
 3. Run the command `rg --hidden FIXME` and change/add lines to match your device, swaps, partitions, peripherals, file systems, etc. in the configuration files. 
-
-> [!IMPORTANT]
-> Ensure that you configure USBGuard in the `nixos/usb.nix` file to avoid potential issues. By default, USBGuard blocks all USB devices, which can lead to the disabling of crucial hardware components such as the integrated camera, bluetooth, wifi, etc. To configure USBGuard properly, add your trusted USB devices to the configuration. You can obtain a list of all connected devices by using the `lsusb` command from the `usbutils` package.
-
-> [!WARNING]
-> Failure to configure USBGuard appropriately may result in the inability to connect any USB devices to your machine. If needed, you can also disable USBGuard altogether by setting `services.usbguard.enable` to `false` in the configuration:`services.usbguard.enable = false;`. This step ensures that USBGuard is not actively blocking any USB devices.
 
 > [!IMPORTANT]
 > Remember to update the monitor settings in the Hyprland configuration file located at `home/.config/hypr/hyprland.conf`.
@@ -196,6 +180,42 @@ tailscale status
   - Customize graphical applications to suit your preferences.
 
   After this, you will have a complete system.
+
+## 🖥️ Running under VMware Workstation Pro
+
+Alongside `nixosConfigurations.isitreal-laptop`, the flake exposes a second target, `nixosConfigurations.vmware-vm`, for running this configuration as a VMware Workstation Pro guest. It shares almost all modules with the laptop config, but swaps Nvidia/Optimus graphics, Bluetooth, and TLP power management for a plain Mesa/`vmwgfx` graphics stack and VMware guest integration (`open-vm-tools`/`vmtoolsd`) instead. Greetd auto-logs into `xnm`'s Hyprland session with no password prompt — convenient for a personal local VM.
+
+### Option A: pre-built image (quickest)
+
+The flake also exposes `packages.x86_64-linux.vmware-image`, a ready-to-boot `.vmdk` built with [nixos-generators](https://github.com/nix-community/nixos-generators) — no manual install step at all.
+
+1. On any Linux machine with [Nix installed](https://nixos.org/download/) (this doesn't have to be NixOS — the official multi-user installer works fine on the RHEL work machine too), from a checkout of this repo: `nix build ./nixos#vmware-image`. This pulls in the full package set (Hyprland, browsers, k3s, the whole dev toolchain, etc.), so expect it to take a while and produce a multi-GB `.vmdk` under `result/`.
+2. In VMware Workstation Pro, create a new VM and choose "I will install the operating system later" when prompted for install media.
+3. Edit the VM's settings: remove the default new virtual disk, and add the built `.vmdk` (`result/nixos.vmdk` or similar) as an existing disk instead.
+4. In the VM's Display settings, enable **Accelerate 3D graphics** for `vmwgfx`/Mesa hardware acceleration.
+5. Boot. It logs straight into Hyprland as `xnm` — no install, no password.
+
+The disk image defaults to 40 GiB (`virtualisation.diskSize` in `nixos/flake.nix`'s `vmware-image` output) — adjust if needed.
+
+### Option B: manual install, then `nixos-rebuild`
+
+1. Create a VM in VMware Workstation Pro and install NixOS as usual.
+2. In the VM's settings, enable **Accelerate 3D graphics** under Display, so `vmwgfx`/Mesa get hardware acceleration instead of falling back to slower software rendering. Don't run VMware's own Easy-Install tools ISO — `open-vm-tools` (enabled via `virtualisation.vmware.guest.enable` in `nixos/vmware-guest.nix`) already provides guest integration (clipboard, drag-and-drop, resizing).
+3. On the VM, generate the machine-specific hardware file (it's gitignored, same as for the laptop): `sudo nixos-generate-config` and copy the resulting `hardware-configuration.nix` into `nixos/`.
+4. Build and switch: `sudo nixos-rebuild switch --flake /etc/nixos#vmware-vm`.
+
+This path is still worth it if you want to partition/encrypt the disk yourself, or you're upgrading an existing VM in place.
+
+**Caveats:**
+- Ollama (`nixos/llm.nix`, `services.ollama.package = pkgs.ollama-cuda`) needs real GPU access. A stock VMware Workstation guest has none — you'd need to configure GPU passthrough (vGPU/DirectPath I/O) on the VMware side for it to actually use the GPU; otherwise it'll fall back to (slow) CPU inference or fail to start.
+- TPM2 (`nixos/security-services.nix`, `security.tpm2.enable`) needs a virtual TPM device added in the VM's settings to function — add one there, or disable the option if you don't need it.
+
+## 🔑 SSH keys on the VM
+
+`home/.ssh/config` only ever held SSH *client* config (host aliases, `IdentityFile` paths) — the actual private key material is never committed to this repo. Once the VM exists, just copy your key over directly:
+
+- From the RHEL work machine: `scp ~/.ssh/id_rsa_azure{,.pub} xnm@<vm-ip>:~/.ssh/`, then on the VM `chmod 600 ~/.ssh/id_rsa_azure` (SSH refuses keys with looser permissions).
+- Or, since `open-vm-tools` is enabled (`nixos/vmware-guest.nix`), drag-and-drop the key files from the host into the guest window, or use the shared clipboard — no network transfer needed for a local VMware Workstation VM.
 
 ## ⌨️ Keybindings
 
@@ -288,11 +308,6 @@ This configuration includes several AI/LLM tools and services for local developm
   - Text embedding model: `nomic-embed-text-v2-moe`
   - CUDA acceleration enabled for GPU inference
   - See `nixos/llm.nix` for the current model list
-  
-- **SearXNG (Searx fork)** - Privacy-respecting meta search engine:
-  - Accessible at `http://localhost:7777`
-  - Supports HTML and JSON formats
-  - 🔒 Remember to set `SEARX_SECRET_KEY` in your environment file: `home/.config/.env.searxng`
 
 - **Open WebUI** - Optional local ChatGPT-style UI for Ollama:
   - Configured for `http://localhost:8888`
@@ -300,21 +315,17 @@ This configuration includes several AI/LLM tools and services for local developm
   - Supports model switching and prompt templates when enabled
 
 **AI Tools:**
-- `aichat` - ChatGPT-like CLI and REPL with lots of features
+- `claude-code` - Anthropic's agentic coding CLI (`claude`); the `ai`/`ai-*` fish helpers and the Alt+A command-line widget are all backed by `claude -p` one-shot prompts (see `home/.config/claude-code/prompts/`)
 - `oterm` - TUI LLM client with markdown support
-- `fabric-ai` - Prompt and workflow toolkit for local AI usage
-- `opencode` - Terminal coding agent powered by local and remote models
-- `agent-browser` - Browser automation tool for AI workflows
 
 > [!NOTE]
-> Ollama and SearXNG are enabled by default. Open WebUI is available in the configuration, but disabled by default.
+> Ollama is enabled by default. Open WebUI is available in the configuration, but disabled by default.
 
 To disable them:
 1. Edit `nixos/llm.nix`
 2. Disable services by setting their `enable` attribute to `false`:
    ```nix
    services.ollama.enable = false;
-   services.searx.enable = false;
    services.open-webui.enable = false;
    ```
 3. Remove AI CLI tools from `environment.systemPackages` if desired

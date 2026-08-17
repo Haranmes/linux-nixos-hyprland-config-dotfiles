@@ -7,7 +7,7 @@
     enable = true;
     implementation = "broker";
     packages = with pkgs; [
-      xfconf
+      xfce.xfconf
       gnome2.GConf
     ];
   };
@@ -16,8 +16,6 @@
   programs.xfconf.enable = true;
   services.tumbler.enable = true; 
   services.fwupd.enable = true;
-  # services.gnome.core-shell.enable = true;
-  # services.udev.packages = with pkgs; [ gnome.gnome-settings-daemon ];
 
   environment.systemPackages = with pkgs; [
     qutebrowser

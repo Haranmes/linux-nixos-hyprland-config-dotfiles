@@ -2,15 +2,13 @@
 
 {
   environment.systemPackages = with pkgs; [
-    go
-    (python314.withPackages(ps: with ps; [ pygobject3 gobject-introspection pyqt6-sip]))
+    (python312.withPackages(ps: with ps; [ pygobject3 gobject-introspection pyqt6-sip]))
     uv
-    nodejs
-    pnpm
-    bun
-    lua
-    zig
-    numbat
-    gleam
+    python312Packages.hatchling
+
+    go
+    gotools
+    golangci-lint
+    delve
   ];
 }

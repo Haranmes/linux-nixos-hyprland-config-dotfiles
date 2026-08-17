@@ -4,16 +4,8 @@
   programs.direnv.enable = true;
 
   environment.systemPackages = with pkgs; [
-    mold
     gcc
-    clang
-    lld
-    lldb
-    musl
-    jdk17
 
-    dioxus-cli
-    trunk
     devenv
     sops
     rops
@@ -24,7 +16,6 @@
     lazygit
     lazynpm
     diffnav
-    sqlx-cli
     license-generator
     git-ignore
     gitleaks
@@ -37,9 +28,5 @@
     gh-dash
     hurl
     grex
-
-    surrealdb
-    surrealdb-migrations
-    surrealist
   ];
 }

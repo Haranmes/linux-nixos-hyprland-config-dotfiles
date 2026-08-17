@@ -13,6 +13,11 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   # FIXME: change it to version from your current, fresh and auto-generated after first installation `configuration.nix` config file
-  system.stateVersion = "your_version_here"; # Did you read the comment?
+  system.stateVersion = "26.05";
+
+  # Skip building the combined `info` directory index across all installed
+  # packages - with this many packages installed, one broken/stale info-file
+  # reference is enough to fail the whole system-path build.
+  documentation.info.enable = false;
 
 }
